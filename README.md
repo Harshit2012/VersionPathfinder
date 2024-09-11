@@ -12,6 +12,7 @@ Switch the version of files.
 ## Features
 - Easy to use
 - Switch version by just two click
+- Delete versions
 
 ## Technologies Used
 <code><img width="51" src="https://user-images.githubusercontent.com/25181517/183423507-c056a6f9-1ba8-4312-a350-19bcbc5a8697.png" alt="Python" title="Python"/></code>
