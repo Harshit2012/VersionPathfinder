@@ -50,6 +50,24 @@ def save_selected_version():
             messagebox.showinfo("Success", f"File updated to version '{selected_version}'")
     else:
         messagebox.showwarning("Warning", "No version selected")
+        
+def delete_selected_version():
+    selection = version_listbox.curselection()
+    
+    if selection:
+        selected_version = version_listbox.get(selection)
+        version_path = os.path.join(version_dir, selected_version)
+        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete version '{selected_version}'?")
+        
+        if confirm:
+            if os.path.exists(version_path):
+                os.remove(version_path)
+                messagebox.showinfo("Success", f"Version '{selected_version}' deleted successfully")
+                refresh_versions()
+            else:
+                messagebox.showerror("Error", "The selected version does not exist")
+    else:
+        messagebox.showwarning("Warning", "No version selected")
 
 def restore_version(event):
     save_selected_version()
@@ -87,5 +105,8 @@ version_listbox.bind('<Double-1>', restore_version)
 
 save_selected_button = Button(root, text="Save Selected Version", command=save_selected_version, state='disabled')
 save_selected_button.pack(pady=5)
+
+delete_button = Button(root, text="Delete Selected Version", command=delete_selected_version, state='disabled')
+delete_button.pack(pady=5)
 
 root.mainloop()
