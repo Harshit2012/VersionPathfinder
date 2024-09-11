@@ -9,7 +9,7 @@ root.title("VersionPathfinder")
 root.geometry("600x400")
 
 def select_file():
-    global filepath, version_dir, observer, event_handler
+    global filepath, version_dir, observer, ignore_next_save
     filepath = filedialog.askopenfilename()
     if filepath:
         file_label.config(text=f"Selected File: {filepath}")
@@ -17,11 +17,32 @@ def select_file():
         os.makedirs(version_dir, exist_ok=True)
         save_button.config(state='normal')
         save_selected_button.config(state='normal')
+        delete_button.config(state='normal')
         refresh_versions()
         start_observer()
+        ignore_next_save = False
+
+def refresh_versions():
+    version_listbox.delete(0, 'end')
+    if os.path.exists(version_dir):
+        versions = os.listdir(version_dir)
+        if versions:
+            for version in versions:
+                version_listbox.insert('end', version)
+            save_selected_button.config(state='normal')
+            delete_button.config(state='normal')
+        else:
+            save_selected_button.config(state='disabled')
+            delete_button.config(state='disabled')
+    else:
+        save_selected_button.config(state='disabled')
+        delete_button.config(state='disabled')
 
 def start_observer():
     global observer, event_handler
+    if observer:
+        observer.stop()
+        observer.join()
     event_handler = FileSystemEventHandler()
     event_handler.on_modified = on_modified
     observer = Observer()
@@ -41,16 +62,39 @@ def save_version():
         refresh_versions()
 
 def save_selected_version():
+    global ignore_next_save
     selection = version_listbox.curselection()
     if selection:
         selected_version = version_listbox.get(selection)
         if selected_version:
             version_path = os.path.join(version_dir, selected_version)
+
+            if observer:
+                observer.stop()
+                observer.join()
+
             shutil.copy2(version_path, filepath)
             messagebox.showinfo("Success", f"File updated to version '{selected_version}'")
+
+            ignore_next_save = True
+            start_observer()
+
+        else:
+            messagebox.showwarning("Warning", "Selected version does not exist")
     else:
         messagebox.showwarning("Warning", "No version selected")
-        
+
+def on_modified(event):
+    global ignore_next_save
+    if event.src_path == filepath:
+        if ignore_next_save:
+            ignore_next_save = False
+        else:
+            save_version()
+
+def restore_version(event):
+    save_selected_version()
+
 def delete_selected_version():
     selection = version_listbox.curselection()
     
@@ -69,23 +113,10 @@ def delete_selected_version():
     else:
         messagebox.showwarning("Warning", "No version selected")
 
-def restore_version(event):
-    save_selected_version()
-
-def refresh_versions():
-    version_listbox.delete(0, 'end')
-    if os.path.exists(version_dir):
-        for version in os.listdir(version_dir):
-            version_listbox.insert('end', version)
-
-def on_modified(event):
-    if event.src_path == filepath:
-        save_version()
-
 filepath = ""
 version_dir = ""
 observer = None
-event_handler = None
+ignore_next_save = False
 
 heading = Label(root, text="VersionPathfinder", font=("Arial", 16))
 heading.pack(pady=10)
@@ -108,5 +139,11 @@ save_selected_button.pack(pady=5)
 
 delete_button = Button(root, text="Delete Selected Version", command=delete_selected_version, state='disabled')
 delete_button.pack(pady=5)
+
+def cleanup():
+    if observer:
+        observer.stop()
+        observer.join()
+    root.destroy()
 
 root.mainloop()
